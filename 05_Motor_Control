@@ -1,0 +1,39 @@
+/*
+ * Proje: PWM Motor Driver
+ * Modül: CCP (Capture/Compare/PWM)
+ * Donanım:
+ * - RA0/AN0: Potansiyometre (Hız Ayarı)
+ * - RC2/CCP1: Motor Sürücü (MOSFET/Transistör Gate)
+ * - RC3: Motor Yönü (Opsiyonel)
+ */
+
+unsigned int adc_oku;
+unsigned short duty_cycle;
+
+void main() {
+    // Port Ayarları
+    ANSEL = 0x01;   // AN0 Analog
+    ANSELH = 0;
+    TRISA = 0xFF;   // PORTA Giriş
+    TRISC = 0x00;   // PORTC Çıkış (PWM pini burada)
+    
+    PORTC = 0;
+    
+    // PWM Modülünü Başlat (5 KHz)
+    PWM1_Init(5000);
+    PWM1_Start();
+
+    while(1) {
+        // 1. Potansiyometreyi Oku (0 - 1023)
+        adc_oku = ADC_Read(0);
+        
+        // 2. ADC değerini PWM formatına çevir (0 - 255)
+        // 10-bit veriyi 8-bit'e düşürmek için 4'e böl (veya 2 sağa kaydır)
+        duty_cycle = adc_oku >> 2; 
+        
+        // 3. Motor Hızını Ayarla
+        PWM1_Set_Duty(duty_cycle);
+        
+        Delay_ms(10); // Stabilite beklemesi
+    }
+}
