@@ -1,0 +1,62 @@
+/*
+ * Proje: 0-99 Multiplexing Counter
+ * Donanım:
+ * - PORTB: 7-Segment Segmentleri (a,b,c,d,e,f,g,dp)
+ * - PORTA.0: Birler Basamağı Transistörü
+ * - PORTA.1: Onlar Basamağı Transistörü
+ * - PORTD.0: Arttır Butonu
+ * - PORTD.1: Azalt Butonu
+ */
+
+unsigned short sayac = 0;
+unsigned short birler = 0;
+unsigned short onlar = 0;
+
+// Ortak Katot Segment Kodları (0-9)
+const unsigned short seg[] = {
+    0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7C, 0x07, 0x7F, 0x6F
+};
+
+void main() {
+    ANSEL = 0;   // Dijital I/O
+    ANSELH = 0;
+    
+    TRISA = 0x00; // PORTA Çıkış (Display Seçimi)
+    TRISB = 0x00; // PORTB Çıkış (Segment Data)
+    TRISD = 0xFF; // PORTD Giriş (Butonlar)
+    
+    PORTA = 0;
+    PORTB = 0;
+
+    while(1) {
+        // --- Matematiksel Ayrıştırma ---
+        birler = sayac % 10;
+        onlar  = sayac / 10;
+        
+        // --- Display Tarama (Multiplexing) ---
+        // 1. Birler Basamağını Göster
+        PORTB = seg[birler];
+        PORTA.F0 = 1;       // Birler basamağını aç
+        Delay_ms(5);        // Gözün algılaması için bekle
+        PORTA.F0 = 0;       // Kapat
+        
+        // 2. Onlar Basamağını Göster
+        PORTB = seg[onlar];
+        PORTA.F1 = 1;       // Onlar basamağını aç
+        Delay_ms(5);
+        PORTA.F1 = 0;       // Kapat
+        
+        // --- Buton Kontrolleri ---
+        // Arttır Butonu (RD0)
+        if (PORTD.F0 == 1) {
+            if (sayac < 99) sayac++;
+            while(PORTD.F0 == 1); // Butondan el çekilmesini bekle
+        }
+        
+        // Azalt Butonu (RD1)
+        if (PORTD.F1 == 1) {
+            if (sayac > 0) sayac--;
+            while(PORTD.F1 == 1);
+        }
+    }
+}
