@@ -1,0 +1,123 @@
+/*
+ * PROJE: Industrial Control Unit (Endüstriyel Kontrol Paneli)
+ * MİMARİ: Event-Driven (Kesme tabanlı)
+ * * ÖZELLİKLER:
+ * 1. Sistem Timer0 ile çalışma süresini sayar.
+ * 2. Potansiyometre ile motor hızını (PWM) ayarlar.
+ * 3. RB0 Butonu "ACİL STOP" görevi görür.
+ * 4. LCD ekran durumu ve hızı raporlar.
+ */
+
+// LCD Bağlantıları
+sbit LCD_RS at RB4_bit;
+sbit LCD_EN at RB5_bit;
+sbit LCD_D4 at RB0_bit;
+sbit LCD_D5 at RB1_bit;
+sbit LCD_D6 at RB2_bit;
+sbit LCD_D7 at RB3_bit;
+
+sbit LCD_RS_Direction at TRISB4_bit;
+sbit LCD_EN_Direction at TRISB5_bit;
+sbit LCD_D4_Direction at TRISB0_bit;
+sbit LCD_D5_Direction at TRISB1_bit;
+sbit LCD_D6_Direction at TRISB2_bit;
+sbit LCD_D7_Direction at TRISB3_bit;
+
+// Global Değişkenler
+unsigned long saniye = 0;
+unsigned int timer_sayac = 0;
+unsigned int adc_raw = 0;
+unsigned short motor_hiz = 0;
+unsigned short sistem_durumu = 1; // 1: Aktif, 0: DURDURULDU
+char txt[15];
+
+// --- KESME (INTERRUPT) RUTİNİ ---
+void interrupt() {
+    // 1. Timer0 Kesmesi (Zaman Sayacı)
+    if (INTCON.T0IF) {
+        timer_sayac++;
+        if (timer_sayac >= 15) { // Basitleştirilmiş (Yaklaşık 1 sn ayarı)
+            saniye++;
+            timer_sayac = 0;
+        }
+        INTCON.T0IF = 0; // Bayrağı temizle
+    }
+
+    // 2. Harici Kesme (RB0 - ACİL STOP)
+    if (INTCON.INTF) {
+        sistem_durumu = !sistem_durumu; // Durumu tersle
+        
+        if (sistem_durumu == 0) {
+            // ACİL DURUM: Motoru durdur, Alarm ver
+            PWM1_Stop();
+            PORTD.F0 = 1; // Kırmızı Alarm LED'i
+        } else {
+            // NORMALE DÖNÜŞ: Motoru başlat
+            PWM1_Start();
+            PORTD.F0 = 0;
+        }
+        
+        INTCON.INTF = 0; // Bayrağı temizle
+    }
+}
+
+void main() {
+    // Donanım Kurulumu
+    ANSEL = 0x01;   // AN0 Analog (Potansiyometre)
+    ANSELH = 0;
+    
+    TRISA = 0xFF;   // RA0 Giriş
+    TRISB = 0x01;   // RB0/INT Giriş (Diğerleri LCD çıkışı)
+    TRISC = 0x00;   // PWM Çıkış
+    TRISD = 0x00;   // Alarm LED Çıkış
+    
+    PORTD = 0;
+
+    // Modül Başlatma
+    Lcd_Init();
+    Lcd_Cmd(_LCD_CLEAR);
+    Lcd_Cmd(_LCD_CURSOR_OFF);
+    
+    PWM1_Init(5000); // 5 kHz PWM
+    PWM1_Start();
+    
+    // Kesme Ayarları
+    OPTION_REG = 0b11000111; // Prescaler 1:256, Yükselen Kenar INT
+    INTCON.GIE = 1;          // Global Interrupt
+    INTCON.T0IE = 1;         // Timer0 Interrupt
+    INTCON.INTE = 1;         // External Interrupt (RB0)
+
+    Lcd_Out(1, 1, "Sistem Aktif");
+    Delay_ms(1000);
+    Lcd_Cmd(_LCD_CLEAR);
+
+    while(1) {
+        if (sistem_durumu == 1) {
+            // --- NORMAL ÇALIŞMA MODU ---
+            
+            // Hız Okuma ve Uygulama
+            adc_raw = ADC_Read(0);
+            motor_hiz = adc_raw >> 2;
+            PWM1_Set_Duty(motor_hiz);
+            
+            // LCD Raporlama
+            Lcd_Out(1, 1, "Hiz: %");
+            ByteToStr((motor_hiz * 100) / 255, txt);
+            Lcd_Out(1, 7, txt);
+            
+            Lcd_Out(2, 1, "Sure: ");
+            LongToStr(saniye, txt);
+            Lcd_Out(2, 7, txt);
+            Lcd_Out_Cp(" sn");
+        } 
+        else {
+            // --- ACİL DURUM MODU ---
+            Lcd_Cmd(_LCD_CLEAR);
+            Lcd_Out(1, 4, "!!! ACIL !!!");
+            Lcd_Out(2, 3, "DURDURULDU");
+            Delay_ms(500); // Yanıp sönme efekti için
+        }
+        
+        Delay_ms(100); // Döngü gecikmesi
+    }
+}
