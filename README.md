@@ -24,7 +24,7 @@ Bu depo, ders müfredatına paralel olarak modüler bir yapıda düzenlenmiştir
 | `/03_Sensors` | **ADC & Hysteresis** | LM35 sıcaklık sensörü ile histerezis (tolerans) kontrollü akıllı klima sistemi. |
 | `/04_Interrupts` | **ISR & Timers** | Timer0 kesmesi ile **10ms hassasiyetli kronometre** ve RB0 harici kesme yönetimi. |
 | `/05_Motor_Control` | **PWM & CCP** | CCP modülü (Capture/Compare/PWM) kullanılarak potansiyometre kontrollü motor sürücü. |
-| `/99_Final_Project` | **Endüstriyel Kontrol** | Tüm modüllerin birleşimi: LCD arayüzlü, kesme tabanlı sistem izleme ve güvenlik paneli. |
+| `Final_Project` | **Endüstriyel Kontrol** | Tüm modüllerin birleşimi: LCD arayüzlü, kesme tabanlı sistem izleme ve güvenlik paneli. |
 
 ## 🛠️ Teknik Altyapı
 * **Mikrodenetleyici:** Microchip PIC16F887 (8-Bit RISC)
