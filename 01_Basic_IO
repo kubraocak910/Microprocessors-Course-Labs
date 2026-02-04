@@ -1,0 +1,40 @@
+/*
+ * Proje: Advanced Knight Rider (Gelişmiş Kara Şimşek)
+ * Yazar: [Adın Soyadın]
+ * Donanım: 
+ * - PORTB: 8 adet LED (RB0 - RB7)
+ * - Kristal: 4MHz veya 8MHz
+ */
+
+void main() {
+    signed char i; // İşaretli değişken (döngüde eksiye düşebilsin diye)
+    
+    ANSEL = 0;     // Tüm portlar dijital
+    ANSELH = 0;
+    TRISB = 0x00;  // PORTB Çıkış
+    PORTB = 0x00;  // LED'ler sönük başlasın
+
+    while(1) {
+        // --- Efekt 1: Soldan Sağa Kayma ---
+        for(i = 0; i < 8; i++) {
+            PORTB = (1 << i); // 1 sayısını 'i' kadar sola kaydır (00000001 -> 00000010...)
+            Delay_ms(50);
+        }
+        
+        // --- Efekt 2: Sağdan Sola Kayma ---
+        for(i = 6; i > 0; i--) {
+            PORTB = (1 << i); 
+            Delay_ms(50);
+        }
+        
+        // --- Efekt 3: Polis Çakarı (Strobe) ---
+        for(i = 0; i < 5; i++) {
+            PORTB = 0xFF; // Hepsi Yanar
+            Delay_ms(30);
+            PORTB = 0x00; // Hepsi Söner
+            Delay_ms(30);
+        }
+        
+        Delay_ms(200); // Döngü başa dönmeden biraz bekle
+    }
+}
