@@ -1,0 +1,82 @@
+/*
+ * Proje: Precision Chronometer (Kesme Tabanlı)
+ * Donanım:
+ * - PORTB: LCD Ekran (B0-B5)
+ * - Timer0: Dahili Zamanlayıcı
+ * Mantık: Her 10ms'de bir değişken güncellenir.
+ */
+
+// LCD Pin Tanımları (MikroC Library)
+sbit LCD_RS at RB4_bit;
+sbit LCD_EN at RB5_bit;
+sbit LCD_D4 at RB0_bit;
+sbit LCD_D5 at RB1_bit;
+sbit LCD_D6 at RB2_bit;
+sbit LCD_D7 at RB3_bit;
+
+sbit LCD_RS_Direction at TRISB4_bit;
+sbit LCD_EN_Direction at TRISB5_bit;
+sbit LCD_D4_Direction at TRISB0_bit;
+sbit LCD_D5_Direction at TRISB1_bit;
+sbit LCD_D6_Direction at TRISB2_bit;
+sbit LCD_D7_Direction at TRISB3_bit;
+
+unsigned int ms_count = 0;
+unsigned short sn = 0, dk = 0, salise = 0;
+char txt[7];
+
+void interrupt() {
+    if (INTCON.T0IF) {
+        ms_count++;
+        // Timer0 1:32 prescaler ile yaklaşık 8ms'de taşar (4MHz).
+        // Bu örnekte basitleştirilmiş mantıkla sayaç kontrolü yapıyoruz.
+        if (ms_count >= 31) { // Yaklaşık 10ms (Kalibrasyon gerekebilir)
+            salise++;
+            ms_count = 0;
+            
+            if (salise > 99) {
+                salise = 0;
+                sn++;
+                if (sn > 59) {
+                    sn = 0;
+                    dk++;
+                }
+            }
+        }
+        TMR0 = 0;        // Timer'ı sıfırla
+        INTCON.T0IF = 0; // Bayrağı temizle
+    }
+}
+
+void main() {
+    ANSEL = 0; ANSELH = 0;
+    
+    Lcd_Init();
+    Lcd_Cmd(_LCD_CLEAR);
+    Lcd_Cmd(_LCD_CURSOR_OFF);
+    Lcd_Out(1, 1, "Kronometre:");
+    
+    // Timer0 Ayarları
+    OPTION_REG = 0b10000100; // Prescaler 1:32
+    INTCON = 0xA0;           // GIE ve T0IE aktif
+    
+    while(1) {
+        // Ekran güncelleme (Ana döngüde)
+        // Format: DK:SN:MS
+        
+        ByteToStr(dk, txt);
+        Lcd_Out(2, 1, txt);
+        
+        Lcd_Out(2, 4, ":");
+        
+        ByteToStr(sn, txt);
+        Lcd_Out(2, 5, txt);
+        
+        Lcd_Out(2, 8, ":");
+        
+        ByteToStr(salise, txt);
+        Lcd_Out(2, 9, txt);
+        
+        Delay_ms(100); // Ekran titremesini önle
+    }
+}
