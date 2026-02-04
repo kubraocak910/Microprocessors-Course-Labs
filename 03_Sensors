@@ -1,0 +1,54 @@
+/*
+ * Proje: Smart HVAC (Histerezis Kontrollü Klima)
+ * Donanım:
+ * - RA0/AN0: LM35 Sıcaklık Sensörü
+ * - RC0: Isıtıcı (Kırmızı LED/Röle)
+ * - RC1: Soğutucu (Mavi LED/Röle)
+ */
+
+unsigned int adc_value;
+float sicaklik;
+
+void main() {
+    ANSEL = 0x01;  // Sadece AN0 analog
+    ANSELH = 0;
+    TRISA = 0xFF;  // PORTA Giriş
+    TRISC = 0x00;  // PORTC Çıkış (Kontrol Röleleri)
+    
+    PORTC = 0;
+
+    while(1) {
+        // 1. Sensörden Veri Oku
+        adc_value = ADC_Read(0);
+        
+        // 2. Voltajı Sıcaklığa Çevir (LM35 Formülü)
+        // (ADC * 5000mV / 1024) / 10mV/C = ADC * 0.4882
+        sicaklik = adc_value * 0.4887; 
+        
+        // 3. Kontrol Mantığı (Histerezis)
+        
+        // --- SOĞUTMA KONTROLÜ ---
+        // Sıcaklık 30'u geçerse soğutmayı aç
+        if (sicaklik > 30.0) {
+            PORTC.F1 = 1; // Soğutucu Aktif
+            PORTC.F0 = 0; // Isıtıcı Pasif
+        } 
+        // 28'e düşene kadar kapatma (Tolerans bandı)
+        else if (sicaklik < 28.0) {
+            PORTC.F1 = 0; 
+        }
+
+        // --- ISITMA KONTROLÜ ---
+        // Sıcaklık 18'in altına düşerse ısıtmayı aç
+        if (sicaklik < 18.0) {
+            PORTC.F0 = 1; // Isıtıcı Aktif
+            PORTC.F1 = 0; // Soğutucu Pasif
+        }
+        // 20'ye çıkana kadar kapatma
+        else if (sicaklik > 20.0) {
+            PORTC.F0 = 0;
+        }
+        
+        Delay_ms(100); // Örnekleme hızı
+    }
+}
