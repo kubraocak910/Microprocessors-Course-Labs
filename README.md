@@ -36,5 +36,5 @@ Bu depo, ders müfredatına paralel olarak modüler bir yapıda düzenlenmiştir
 Bu depo, 8-bit mimari temellerine odaklanmaktadır. İleri seviye 32-bit ARM Cortex mimarisi ve RTOS uygulamaları, gelecekteki **Embedded Systems** deposunda yer alacaktır.
 
 ---
-**[Adın Soyadın]**
+**Hatice Kübra Ocak**
 Computer Engineering Student
